@@ -1,3 +1,7 @@
+from fastapi import HTTPException
+from app.core.security import hash_password, verify_password, create_access_token
+from app.models.user import User
+from app.schemas.user import UserCreate, Token
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 
@@ -51,3 +55,24 @@ def create_application(
 def list_applications(db: Session = Depends(get_db)):
     rows = db.query(Application).all()
     return [{"id": r.id, "company": r.company, "role": r.role, "status": r.status} for r in rows]
+@app.post("/auth/register")
+def register(payload: UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.username == payload.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    user = User(username=payload.username, password_hash=hash_password(payload.password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"id": user.id, "username": user.username}
+
+
+@app.post("/auth/login", response_model=Token)
+def login(payload: UserCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == payload.username).first()
+    if not user or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    token = create_access_token(subject=user.username)
+    return {"access_token": token, "token_type": "bearer"}

@@ -84,7 +84,7 @@ def create_application(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    row = Application(company=payload.company, role=payload.role, status=payload.status)
+    row = Application(user_id=current_user.id,company=payload.company, role=payload.role, status=payload.status)
     db.add(row)
     db.commit()
     db.refresh(row)
@@ -96,4 +96,4 @@ def list_applications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Application).all()
+    return db.query(Application).filter(Application.user_id == current_user.id).all()

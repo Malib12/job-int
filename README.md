@@ -1,0 +1,1 @@
+The API was manually tested to verify endpoint functionality, correct responses, and handling of edge cases such as invalid input or missing data.
